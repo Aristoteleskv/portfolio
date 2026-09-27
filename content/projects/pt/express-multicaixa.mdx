@@ -1,0 +1,99 @@
+---
+title: "Express — Multicaixa Express"
+summary: "Aplicação mobile de compras, transferências e consultas da EMIS. Clone do serviço, construído em Flutter com BLoC, armazenamento seguro do PIN e um mapeamento de ecrãs separado por feature."
+year: "2023 — 2026"
+role: "Desenvolvedor mobile — arquitetura, UI e integração"
+featured: false
+order: 3
+repo: "https://github.com/Aristoteleskv/Express"
+stack:
+  - "Flutter"
+  - "Dart"
+  - "BLoC"
+  - "Dio"
+  - "Hive"
+  - "sqflite"
+  - "flutter_secure_storage"
+metrics:
+  - { label: "Ficheiros Dart", value: "22" }
+  - { label: "Linhas de Dart", value: "~2 100" }
+  - { label: "Plataformas", value: "Android, iOS, Web" }
+  - { label: "Camadas BLoC", value: "6" }
+images:
+  - src: "/projects/express-1.png"
+    alt: "Interface da aplicação Express"
+    caption: "Ecrã principal da aplicação"
+  - src: "/projects/express-2.png"
+    alt: "Ecrã de autenticação por PIN"
+    caption: "Autenticação por PIN com teclado numérico"
+  - src: "/projects/express-3.png"
+    alt: "Ecrã de transfers da aplicação"
+    caption: "Fluxo de transferências"
+---
+
+## O que é
+
+O Multicaixa Express é um serviço de compras, transferências e consulta de
+saldo. Este projeto é um **clone** — digo-o à frente, porque é um exercício
+técnico, não um produto original. O objectivo nunca foi o ecrã: foi
+construir a arquitectura de uma app mobile que trata de dinheiro e de dados
+sensíveis, e fazer isso bem feito.
+
+## A parte interessante: BLoC a sério
+
+A maioria dos clones pára num `setState` e segue em frente. Aqui o estado de
+autenticação está separado em três ficheiros por feature — evento, estado e
+lógica — e a camada de dados não sabe nada de widgets.
+
+```dart title="lib/views/auth/authentication_pin_bloc.dart"
+// A feature de PIN tem o seu próprio trio:
+//   authentication_pin_bloc.dart    → quando fazer o quê
+//   authentication_pin_event.dart   → o que aconteceu
+//   authentication_pin_state.dart   → como estamos
+```
+
+A mesma separação repete-se na criação do PIN. O `PinRepository` fica por
+baixo, e é o único que fala com o armazenamento. Um ecrã novo entra no
+sistema sem tocar num único `await` de outro ecrã.
+
+## O PIN nunca toca no `SharedPreferences`
+
+Um PIN é uma credencial. Aqui vive em `flutter_secure_storage`, que no Android
+usa o Keystore encriptado e no iOS o Keychain — não o `Hive` nem o
+`sqflite`, que guardam em claro.
+
+```dart title="lib/views/data/pin_repository.dart"
+// Errado: PIN em texto claro no dispositivo.
+// Certo: flutter_secure_storage -> Keystore / Keychain.
+```
+
+`Hive` e `sqflite` continuam a existir, mas para o que é legível por
+definição: preferências de interface e histórico. Separar o que é sensível do
+que não é, é metade do trabalho.
+
+## O que corrigi mais tarde
+
+O README original descrevia um ecrã de compras que não carregava. A causa não
+era o ecrã: era uma navegação assíncrona sem contexto vivo. As correções
+ficaram registadas porque são o tipo de coisa que se refaz sempre:
+
+- **Navegação segura** — correcção dos *async gaps* no fluxo de autenticação,
+  que era a origem do ecrã em branco.
+- **Compatibilidade** — alvo em Flutter 3.x e Dart 3, com o SDK constraint
+  alargado.
+- **Dependências críticas** — actualizações de `dio`,
+  `flutter_secure_storage` e `hive`.
+- **Refactoração** — padronização de nomes de variáveis e de widgets, porque
+  `custom_buttom.dart` com um `t` a menos nunca devia ter chegado ao
+  repositório.
+
+## O que eu faria diferente
+
+- **Testes.** Só existe um ficheiro de teste. Numa app que mexe em PIN e
+  dinheiro, os fluxos de autenticação são a primeira coisa a testar — e o
+  `bloc_test` tornava isso direto.
+- **Erros de rede.** Com `dio` há um interceptor por escrever para que uma
+  falha da EMIS não deixe o utilizador num ecrã infinito de loading.
+- **Internacionalização e acessibilidade.** O `pubspec.yaml` não tem `intl`, e
+  isso é uma decisão, não um acidente. Se a app fosse para além de um único
+  mercado, era o primeiro trabalho a fazer.

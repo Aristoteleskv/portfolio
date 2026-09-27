@@ -1,0 +1,99 @@
+---
+title: "mSeller UNITEL — recharge app"
+summary: "A Flutter mobile app for UNITEL top-ups, with authentication, registration and a recharge flow. Runs on all six Flutter platforms from a single codebase."
+year: "2022"
+role: "Mobile developer — UI, validation and integration"
+featured: false
+order: 4
+repo: "https://github.com/Aristoteleskv/mSeller_UNITEL"
+stack:
+  - "Flutter"
+  - "Dart"
+  - "Android"
+  - "iOS"
+metrics:
+  - { label: "Dart files", value: "19" }
+  - { label: "Lines of Dart", value: "~1,050" }
+  - { label: "Platforms", value: "6" }
+  - { label: "GitHub stars", value: "3" }
+images:
+  - src: "/projects/mseller-1.png"
+    alt: "mSeller UNITEL app interface"
+    caption: "Recharge flow"
+  - src: "/projects/mseller-2.png"
+    alt: "Authentication screen"
+    caption: "Seller authentication"
+  - src: "/projects/mseller-3.png"
+    alt: "App splash screen"
+    caption: "Splash screen"
+---
+
+## What it is
+
+A UNITEL top-up app: the seller signs in, gets to their account, and makes the
+recharge. This is the oldest project here, and the smallest — which is exactly
+why it is worth showing.
+
+## One codebase, six platforms
+
+The repository ships `android`, `ios`, `web`, `linux`, `macos` and `windows`.
+That is not a theoretical ambition: Flutter generates all six, and the same
+Dart code runs on a server and on a phone. For a product aimed at sellers with
+Android phones and, at the same time, counters with desktops, that is not an
+extra — it is the reason to use Flutter.
+
+## Validation as a separate concern
+
+What I like most about this project is the separation of the validators, which
+looks like a small thing but avoids the most common class of bugs in
+registration forms: the same rule written down in two different places.
+
+```dart title="lib/utils/db_validator.dart"
+class DbValidator {
+  static String? validateUserID({required String uid}) {
+    if (uid.isEmpty) {
+      return 'O ID do usuário não pode estar vazio';
+    } else if (uid.length <= 3) {
+      return 'O ID do usuário deve ter mais de 3 caracteres';
+    }
+    return null;
+  }
+}
+```
+
+The pair is `DbValidator` for data fields and format, and `EpValidator` for
+email and password. The error messages live next to the rule that produces
+them, in Portuguese, rather than inline in the widgets.
+
+## The structure
+
+```
+lib/
+  main.dart
+  res/          constants and palette
+  routes/       Rotas
+  utils/        validators
+  views/
+    splash/     startup
+    auth/       login and registration
+    home/       main screen
+    carrega/    recharge flow
+  widgets/      app bar, fields, forms
+```
+
+`SplashScreen` is a `StatefulWidget` with a two-second `Timer` that navigates
+to login. Simple, and it should be.
+
+## What I would do differently
+
+This project is from 2022 and the list of improvements is longer than the
+project:
+
+- **Tests.** There is a single `widget_test.dart`, which is what
+  `flutter create` generates. The login and recharge flows deserve real tests.
+- **State.** The splash screen uses a raw `Timer`. With a provider or a bloc,
+  the wait time and the entry conditions would stop being scattered across
+  widgets.
+- **Errors and loading.** There is no visible network failure handling, and
+  in an app that makes recharges that is the detail that matters most to the
+  user.

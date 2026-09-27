@@ -1,0 +1,98 @@
+---
+title: "mSeller UNITEL — app de recargas"
+summary: "Aplicação mobile para recargas UNITEL em Flutter, com autenticação, registo e fluxo de recarga. Corre nas seis plataformas do Flutter a partir da mesma base de código."
+year: "2022"
+role: "Desenvolvedor mobile — UI, validação e integração"
+featured: false
+order: 4
+repo: "https://github.com/Aristoteleskv/mSeller_UNITEL"
+stack:
+  - "Flutter"
+  - "Dart"
+  - "Android"
+  - "iOS"
+metrics:
+  - { label: "Ficheiros Dart", value: "19" }
+  - { label: "Linhas de Dart", value: "~1 050" }
+  - { label: "Plataformas", value: "6" }
+  - { label: "Estrelas no GitHub", value: "3" }
+images:
+  - src: "/projects/mseller-1.png"
+    alt: "Interface da aplicação mSeller UNITEL"
+    caption: "Fluxo de recarga"
+  - src: "/projects/mseller-2.png"
+    alt: "Ecrã de autenticação da aplicação"
+    caption: "Autenticação do vendedor"
+  - src: "/projects/mseller-3.png"
+    alt: "Ecrã inicial da aplicação"
+    caption: "Ecrã inicial"
+---
+
+## O que é
+
+Uma app de recargas UNITEL: o vendedor autentica-se, entra na sua conta e
+faz a recarga. É o projecto mais antigo que está aqui, e o menor — e é
+justamente por isso que vale a pena mostrar.
+
+## Uma base de código, seis plataformas
+
+O repositório traz as pastas `android`, `ios`, `web`, `linux`, `macos` e
+`windows`. Não é uma ambição teórica: o Flutter gera as seis, e o mesmo
+código Dart corre num servidor e num telefone. Para um produto dirigido a
+vendedores com telemóveis Android e, ao mesmo tempo, a balcões com
+computador, isso não é um extra — é a razão de usar Flutter.
+
+## Validação em vez de lógica espalhada
+
+O que mais me agradou neste projecto é a separação dos validadores, que
+parece pequena mas evita a classe de bugs mais comum em formulários de
+registo: a mesma regra escrita em dois sítios diferentes.
+
+```dart title="lib/utils/db_validator.dart"
+class DbValidator {
+  static String? validateUserID({required String uid}) {
+    if (uid.isEmpty) {
+      return 'O ID do usuário não pode estar vazio';
+    } else if (uid.length <= 3) {
+      return 'O ID do usuário deve ter mais de 3 caracteres';
+    }
+    return null;
+  }
+}
+```
+
+O par é `DbValidator` para campos e formato de dados, e `EpValidator` para
+email e password. As mensagens de erro vivem ao lado da regra que as produz,
+em português, e não inline nos widgets.
+
+## A estrutura
+
+```
+lib/
+  main.dart
+  res/          constantes e paleta
+  routes/       Rotas
+  utils/        validadores
+  views/
+    splash/     arranque
+    auth/       login e registo
+    home/       ecrã principal
+    carrega/    fluxo de recarga
+  widgets/      app bar, campos, formulários
+```
+
+O `SplashScreen` é um `StatefulWidget` com um `Timer` de dois segundos que
+navega para o login. Simples, e é o que deve ser.
+
+## O que eu faria diferente
+
+Este projecto é de 2022 e a lista de melhorias é maior do que o projecto:
+
+- **Testes.** Existe um único `widget_test.dart`, que é o que o
+  `flutter create` gera. Os fluxos de login e de recarga merecem testes a
+  sério.
+- **Estado.** O ecrã de splash usa `Timer` directamente. Com um provider ou
+  um bloc, o tempo de espera e as condições de entrada stopavam de estar
+  espalhados pelo widget.
+- **Erros e carregamento.** Não há tratamento de falha de rede visível, e
+  numa app que faz recargas isso é o detalhe que mais importa ao utilizador.

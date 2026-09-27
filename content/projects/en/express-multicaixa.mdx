@@ -1,0 +1,99 @@
+---
+title: "Express — Multicaixa Express"
+summary: "Mobile app for purchases, transfers and balance checks. A clone of the service, built in Flutter with BLoC, secure PIN storage and a screen layout split per feature."
+year: "2023 — 2026"
+role: "Mobile developer — architecture, UI and integration"
+featured: false
+order: 3
+repo: "https://github.com/Aristoteleskv/Express"
+stack:
+  - "Flutter"
+  - "Dart"
+  - "BLoC"
+  - "Dio"
+  - "Hive"
+  - "sqflite"
+  - "flutter_secure_storage"
+metrics:
+  - { label: "Dart files", value: "22" }
+  - { label: "Lines of Dart", value: "~2,100" }
+  - { label: "Platforms", value: "Android, iOS, Web" }
+  - { label: "BLoC layers", value: "6" }
+images:
+  - src: "/projects/express-1.png"
+    alt: "Express app interface"
+    caption: "Main application screen"
+  - src: "/projects/express-2.png"
+    alt: "PIN authentication screen"
+    caption: "PIN authentication with numeric keypad"
+  - src: "/projects/express-3.png"
+    alt: "Transfers screen"
+    caption: "Transfer flow"
+---
+
+## What it is
+
+Multicaixa Express is a service for purchases, transfers and balance checks.
+This project is a **clone** — I say so up front, because it is a technical
+exercise, not an original product. The goal was never the screen: it was to
+build the architecture of a mobile app that handles money and sensitive data,
+and to build it properly.
+
+## The interesting part: BLoC done properly
+
+Most clones stop at `setState` and move on. Here the authentication state is
+split into three files per feature — event, state and logic — and the data
+layer knows nothing about widgets.
+
+```dart title="lib/views/auth/authentication_pin_bloc.dart"
+// The PIN feature has its own trio:
+//   authentication_pin_bloc.dart    → when to do what
+//   authentication_pin_event.dart   → what happened
+//   authentication_pin_state.dart   → where we are
+```
+
+The same split repeats for PIN creation. `PinRepository` sits underneath and is
+the only thing that talks to storage. A new screen joins the system without
+touching a single `await` in another screen.
+
+## The PIN never touches `SharedPreferences`
+
+A PIN is a credential. Here it lives in `flutter_secure_storage`, which uses
+the encrypted Keystore on Android and the Keychain on iOS — not `Hive`, not
+`sqflite`, which store in plain text.
+
+```dart title="lib/views/data/pin_repository.dart"
+// Wrong: PIN in plain text on the device.
+// Right: flutter_secure_storage -> Keystore / Keychain.
+```
+
+`Hive` and `sqflite` are still there, but for what is readable by default:
+interface preferences and history. Separating what is sensitive from what is
+not is half the work.
+
+## What I fixed later
+
+The original README described a purchase screen that would not load. The cause
+was not the screen: it was async navigation without a live context. The fixes
+are recorded because they are the kind of thing you redo forever:
+
+- **Safe navigation** — fixing the async gaps in the authentication flow,
+  which was the source of the blank screen.
+- **Compatibility** — targeting Flutter 3.x and Dart 3, with the SDK
+  constraint widened.
+- **Critical dependencies** — updates to `dio`, `flutter_secure_storage` and
+  `hive`.
+- **Refactoring** — standardising variable and widget names, because
+  `custom_buttom.dart` with a missing `t` should never have reached the
+  repository.
+
+## What I would do differently
+
+- **Tests.** There is one test file. In an app that handles a PIN and money,
+  the authentication flows are the first thing to test — and `bloc_test` makes
+  that direct.
+- **Network errors.** With `dio` there is an interceptor to write, so an EMIS
+  failure does not leave the user on an infinite loading screen.
+- **Internationalisation and accessibility.** There is no `intl` in the
+  `pubspec.yaml`, and that is a decision, not an accident. If the app were
+  going beyond a single market, it would be the first piece of work.

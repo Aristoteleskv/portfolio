@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfólio — Matutadidi Aristóteles Kivova
 
-## Getting Started
+Portfólio pessoal em Next.js, com versões em português (`/`) e inglês (`/en`).
+Conteúdo em MDX dentro do repositório, deploy na Vercel.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS v4 (tokens em `src/app/globals.css`, sem `tailwind.config.js`)
+- MDX via `next-mdx-remote`, realce de código com `rehype-pretty-code` + Shiki
+- Deploy: Vercel (detecção automática, sem configuração)
+
+## Comandos
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # build de produção
+npm run start   # serve o build
+npm run lint    # eslint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Estrutura
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+content/projects/pt/*.mdx     Projetos em português
+content/projects/en/*.mdx     Os mesmos projetos em inglês (mesmo slug)
+public/projects/              Screenshots dos apps
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+src/
+  app/
+    (pt)/                     Raiz em português  -> /
+      layout.tsx              <html lang="pt">
+      page.tsx
+      projetos/[slug]/page.tsx
+    (en)/                     Raiz em inglês     -> /en
+      layout.tsx              <html lang="en">
+      en/page.tsx
+      en/projects/[slug]/page.tsx
+    globals.css
+    robots.ts
+    sitemap.ts
+  components/                 Header, footer, cartões, tema, MDX
+  i18n/                       config.ts (rotas) + dictionaries.ts (textos)
+  lib/
+    site.ts                   Nome, role, GitHub, email
+    projects.ts               Leitor de MDX + frontmatter
+    stack.ts                  Inventário de stack por idioma
+```
 
-## Learn More
+Os dois idiomas usam **dois root layouts** em route groups. É a forma oficial
+do Next de ter `<html lang>` correcto em `/` e em `/en` sem middleware. Não
+adiciones um `src/app/layout.tsx` — passaria a haver dois root layouts.
 
-To learn more about Next.js, take a look at the following resources:
+## Adicionar um projeto
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Cria `content/projects/pt/<slug>.mdx` **e** `content/projects/en/<slug>.mdx`
+   com o mesmo nome de ficheiro. O switch de idioma depende dos slugs iguais.
+2. Frontmatter obrigatório:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```yaml
+---
+title: "Nome do projeto"
+summary: "Uma ou duas frases para o cartão e para os resultados de busca."
+year: "2024 — 2026"
+role: "O que fiz no projeto"
+featured: true        # true = selo "Destaque"
+order: 5              # ordena os cartões
+stack: ["Flutter", "Dart"]
+metrics:              # até 4, mostradas no cartão
+  - { label: "Ficheiros Dart", value: "22" }
+images:               # opcional
+  - src: "/projects/app-1.png"
+    alt: "Descrição da imagem"
+    caption: "Legenda"
+---
+```
 
-## Deploy on Vercel
+Campos opcionais: `repo` (URL), `live` (URL).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Um `repo` privado produz um 404 para quem não tem acesso. Enquanto o `noop`
+for privado, a linha está comentada nos ficheiros PT e EN.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack
+
+`src/lib/stack.ts` tem o inventário, separado por idioma. Só entram aqui
+tecnologias que realmente usas — o README do perfil GitHub é a espinha dorsal,
+e o grupo de IA/ML foi acrescentado a partir do código real.
+
+## Tema
+
+Escuro por omissão, claro com `<html class="light">`. A escolha é guardada em
+`localStorage` e, sem preferência guardada, segue o sistema. O script
+anti-flash está em `src/components/shell.tsx` e corre antes do primeiro paint.
+
+## Deploy
+
+1. Sobe o repositório para o GitHub.
+2. Importa em [vercel.com/new](https://vercel.com/new). Detecta Next.js sozinho.
+3. Define a variável de ambiente:
+
+   ```
+   NEXT_PUBLIC_SITE_URL=https://<o-teu-dominio>
+   ```
+
+   Sem isto o `sitemap.xml` e as Open Graph tags usam o URL de fallback.
+
+Depois do primeiro deploy, liga um domínio em **Settings → Domains** e o
+HTTPS é automático.

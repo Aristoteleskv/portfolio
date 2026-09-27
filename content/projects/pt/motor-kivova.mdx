@@ -1,0 +1,131 @@
+---
+title: "Kivova — motor de IA para moderação e assistente"
+summary: "Serviço Python que modera texto e imagem, gera legendas e analisa rostos. Inclui um transformer de nível de carácter treinado do zero em PyTorch, e um princípio inegociável: nenhuma falha de modelo pode partir o produto."
+year: "2024 — 2026"
+role: "Desenvolvedor de ML e backend — desenho do serviço, treino e integração"
+featured: true
+order: 2
+# O `noop` é PRIVADO. Descomenta o repo quando o tornares público.
+# repo: "https://github.com/Aristoteleskv/noop"
+stack:
+  - "Python"
+  - "PyTorch"
+  - "FastAPI"
+  - "NumPy"
+  - "OpenCV"
+  - "NudeNet (ONNX)"
+  - "faster-whisper"
+  - "GFPGAN / Real-ESRGAN"
+metrics:
+  - { label: "Módulos Python", value: "26" }
+  - { label: "Linhas de Python", value: "~4 500" }
+  - { label: "Modelos treinados por mim", value: "1" }
+  - { label: "Ficheiros de teste", value: "3" }
+---
+
+## O serviço
+
+O `python_service/` é um serviço HTTP e WebSocket independente, servido por
+FastAPI e Uvicorn na porta 8765. O PHP chama-o; quando ele não está de pé, o
+PHP continua a servir o produto. **26 módulos** de Python, cerca de **4 500
+linhas**, e cada um deles tem um motivo para existir:
+
+| Módulo | O que faz |
+| --- | --- |
+| `moderate.py` | Moderação NSFW de imagem (NudeNet em ONNX) |
+| `nlp.py` | Léxico PT-BR de toxicidade e spam |
+| `kivova.py` | Assistente: regras + NumPy, em português |
+| `kivova_brain.py` | Transformer de nível de carácter em PyTorch |
+| `kivova_inference.py` | Carrega e serve o modelo treinado |
+| `npface_processor.py` | Processamento e análise de rostos |
+| `restore_face.py` | Restauro e super-resolução (GFPGAN / Real-ESRGAN) |
+| `synthetic_generator.py` | Geração de dados sintéticos |
+| `transcribe.py` | Legendas automáticas (faster-whisper) |
+| `phash.py` / `blurhash_service.py` | Deteção de duplicados e placeholders |
+
+## O modelo que treinei
+
+A parte de que mais gosto: `kivova_brain.py` é um transformer de
+nível de carácter, escrito sem dependências de alto nível. Self-attention
+com máscara causal, quatro camadas, quatro cabeças, `n_embd` 128 — a
+arquitetura do nanoGPT, reimplementada.
+
+```python title="python_service/kivova_brain.py"
+class Head(nn.Module):
+    """Uma cabeça de self-attention"""
+    def __init__(self, head_size):
+        super().__init__()
+        self.key = self.query = self.value = ...  # Linear(n_embd, head_size)
+        # Máscara causal: a posição t só pode attending a <= t.
+        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.dropout = nn.Dropout(dropout)
+```
+
+Escolhi **nível de carácter** por uma razão prática, não estética: em
+português, o mesmo conceito escreve-se `acao`, `ação` ou `acção`. Um
+tokenizer ao nível de palavra precisa de aprender todas essas variantes; ao
+nível de carácter, cada caractere é um token e a diferença passa a ser um
+padrão que o modelo aprende dos dados. Com um corpus pequeno, isso é a
+diferença entre aprender e não aprender.
+
+O treino corre em GPU quando existe, CPU quando não, e guarda o vocabulário
+como `stoi`/`itos` num `meta.json` ao lado dos pesos.
+
+```python title="python_service/kivova_inference.py"
+vocab_size = len(meta['chars'])
+self.model = KivovaLanguageModel(vocab_size)
+self.model.load_state_dict(
+    torch.load(model_path, map_location=device, weights_only=True)
+)
+self.model.eval()
+```
+
+## O princípio: falhar para o lado bom
+
+O serviço tem many caminhos de ML, e **nenhum deles pode fazer o upload
+falhar**. O caso mais interessante é a moderação de imagem: se o NudeNet não
+estiver instalado, se o download do modelo falhar, ou se houver um erro em
+tempo de execução, o código degrada para uma heurística de tom de pele em HSV
+— e devolve sempre o mesmo formato.
+
+```python title="python_service/moderate.py"
+# Contrato estável, seja o modelo ONNX ou a heurística:
+#   {'nsfw_score': float, 'label': 'safe' | 'nsfw'}
+# O PHP trata nsfw_score nulo como 'pendente' e manda para revisão humana.
+```
+
+O PHP faz o mesmo pela parte dele: envolve a chamada num `try`/`catch` e,
+se o serviço não responder, devolve `nsfw_score: null`. O conteúdo entra na
+fila de revisão humana. **Perdemos features, nunca conteúdo.** O mesmo vale
+para o Redis no *rate limiting* e para o guard de segurança.
+
+## Português é um caso difícil
+
+A moderação de texto não é um modelo: é um léxico PT-BR construído à mão em
+`nlp.py`, com insults fortes e leves ponderados separadamente. E há um teste
+que existe precisamente para o caso que me deu mais trabalho:
+
+```python title="python_service/test_kivova_accents.py"
+# Acentosnão são ruído: 'acao' e 'acção' são o mesmo verbo.
+# O teste garante que o classificador não trata o acento como sinal distinto.
+```
+
+Três ficheiros de teste para o serviço (`test_kivova_logic.py`,
+`test_kivova_accents.py`, `test_analysis.py`). Para um serviço de ML com
+regras de negócio, é pouco — e é o que eu mudaria primeiro.
+
+## Porquê não chamar uma API
+
+Poderia ter chamado um serviço de moderação hospedado. Escolhi treinar e
+executar localmente, por três razões que Hoy valem mais que a conveniência:
+
+1. **Os dados são de utilizadores.** Texto e imagens de uma rede social não
+   deveriam sair do servidor para um terceiro sem que eu pudesse explicar porquê.
+2. **Custo previsível.** Uma rede social cresce; o custo por moderação
+   cresce com ela. Uma vez trained, é uma máquina.
+3. **Sem bloqueio de fornecedor.** O modelo é meu, os pesos estão no
+   repositório, e a interface é um contrato de JSON de duas chaves.
+
+O custo desta escolha é real: mais superfície de manutenção, GPU para
+treinar, e a necessidade de tratar cada modelo como um componente que pode
+cair. Compensou.

@@ -1,0 +1,161 @@
+---
+title: "Noop — rede social completa"
+summary: "Plataforma social em PHP 8 e MySQL 8 com chat em tempo real, live streaming por WebRTC, moderação por IA e fila de processamento assíncrono. Não é um clone de nada: tem identidade visual própria."
+year: "2023 — 2026"
+role: "Desenvolvedor full-stack — arquitetura, implementação e operação"
+featured: true
+order: 1
+# O repositório `noop` é PRIVADO. Descomenta quando o tornares público,
+# senão o botão "ver código" leva a um 404.
+# repo: "https://github.com/Aristoteleskv/noop"
+stack:
+  - "PHP 8.1"
+  - "MySQL 8"
+  - "Ratchet / ReactPHP"
+  - "WebRTC + coturn"
+  - "Redis"
+  - "Docker"
+  - "Composer"
+metrics:
+  - { label: "Ficheiros versionados", value: "1 205" }
+  - { label: "Linhas de PHP", value: "~52 600" }
+  - { label: "Tabelas", value: "76" }
+  - { label: "Serviços de domínio", value: "52" }
+---
+
+## O ponto de partida
+
+O projeto nasceu de uma série de vídeos sobre como construir uma rede social em
+PHP. Uma audiência, um `cadastro.php` e muita coisa por decidir. O que ficou
+decidido ao longo do caminho foi o que importa: em vez de seis contas, há
+perfis, álbuns, grupos, comunidades, recados, depoimentos, chat, lives,
+moderação por IA e uma fila de jobs. **1 205 ficheiros versionados** e cerca de
+**52 600 linhas de PHP** depois.
+
+A decisão de design que mais pesou foi desde o início: o Noop não é um clone.
+Não é "estilo Instagram" nem "estilo Orkut". Tem regras de identidade visual
+próprias, aplicadas ao perfil e ao grid de conteúdo arrastável. Dava mais
+trabalho, mas é a diferença entre um exercício e um produto.
+
+## Um único ponto de entrada
+
+Todo o tráfego — API, páginas e *pretty URLs* — entra pelo mesmo front
+controller. O mapa de páginas vive num único ficheiro, e o `.htaccess` só
+contém o *fallback* para o bootstrap. Isso é uma decisão deliberada: cada
+página nova é uma entrada no mapa, nunca mais uma `RewriteRule` que só
+funciona num ambiente.
+
+```php title="bootstrap.php"
+// Páginas: registadas no mapa (fonte de verdade).
+// O .htaccess limita-se a reenviar tudo para aqui.
+require __DIR__ . '/src/Http/Routes/pages.php';
+```
+
+## Modernizar sem reescrever
+
+O código começou como `classes/*.class.php` num único nível. Hoje há
+`src/` com PSR-4 e namespace `App\`, e as classes legadas continuam a
+funcionar através de um autoload de compatibilidade em `includes/config.php`.
+
+Não reescrevi tudo de uma vez. Cada módulo migrado fica em `src/`; o resto
+continua em `classes/`. A divisão do utilizador é um bom exemplo: a tabela
+`usuarios` foi normalizada em `user_preferences`, `user_avatar_config` e
+`user_security`, e o modelo `User` passou a presenting os três como um só
+objeto. **O modelo é a fonte de verdade; a BD reflecte.**
+
+## O pipeline de API
+
+As rotas `/api/*` correm sobre PSR-7 e PSR-15 a sério. O router constrói um
+`ServerRequest` a partir das *superglobals*, executa a cadeia de *middlewares*
+e emite a resposta com um emitter próprio.
+
+```php title="src/Http/Routes/api.php"
+$router->api(
+    '/api/exemplo',
+    $handler,
+    'POST',
+    [new AuthMiddleware(), new CsrfMiddleware()]
+);
+```
+
+O `AuthMiddleware` exige sessão iniciada **e** sem 2FA por concluir — sem
+isso, a senha sozinha abria a porta para a API. O `CsrfMiddleware` valida o
+token no *body* ou no header `X-CSRF-Token` e devolve `419` quando falha.
+
+Um detalhe que me custou horas: neste ambiente, `http_response_code(419)`
+envia a *status line* sem *reason phrase*, e o Apache responde `500`. O
+cliente nunca via o `419` pretendido. A correção foi construir a linha
+explicitamente, com uma tabela de *phrases* para os códigos que o Guzzle não
+conhece.
+
+```php title="src/Http/Emitter.php"
+// Códigos fora da tabela padrão do Guzzle entram em PHRASES.
+// Sem isto, http_response_code(419) devolve 500 ao cliente.
+$phrase = self::PHRASES[$status] ?? 'Unknown Status';
+$statusLine = sprintf("HTTP/1.1 %d %s\r\n", $status, $phrase);
+```
+
+## Tempo real
+
+O chat usa Ratchet sobre ReactPHP, na porta 8090. O indicador de "a escrever"
+não vive em memória: é persistido na BD com TTL de 6 segundos e servido por
+*polling* e por WebSocket ao mesmo tempo. A razão é prática — se o WebSocket
+cair, o estado de escrita continua a funcionar.
+
+As lives são WebRTC com sinalização própria (porta 8088) e um servidor TURN
+via Docker, porque sem TURN a maior parte dos utilizadores derrière NAT não
+consegue ligar-se.
+
+## Segurança que falha para o lado certo
+
+Há 2FA, OTP por WhatsApp, login social com Facebook e Instagram, e um guard de
+segurança IA que corre em cada requisição dinâmica: *blocklist* de ameaças,
+*rate limiting* no Redis e deteção de anomalias por distância de Mahalanobis
+com similaridade de cosseno.
+
+O princípio que atravessa tudo isto é **fail-open**. Se o Redis não responder,
+o site continua. Se o serviço de Python de moderação estiver em baixo, o
+upload continua e fica marcado para revisão humana.
+
+```php title="src/Services/ModeracaoService.php"
+try {
+    $resposta = HttpClient::postJson($url . '/moderate', $payload);
+} catch (ClientExceptionInterface $e) {
+    // O serviço de ML caiu. O upload NÃO pode falhar por causa disso:
+    // devolve score nulo e deixa o conteúdo na fila de revisão.
+    return ['nsfw_score' => null, 'label' => 'pendente'];
+}
+```
+
+Todo o tráfego de saída passa por um cliente HTTP PSR-18 sobre Guzzle, com
+`http_errors` desligado — um `4xx` é uma resposta, não uma exceção. Falhas de
+transporte são que reais, e os serviços que devem degradar fazem `catch`.
+
+## Os dados
+
+**76 tabelas** em `utf8mb4`, com *routines* e *triggers*, e 30 ficheiros de
+migração versionados. A migração de base de dados é um ficheiro no
+repositório, não uma nota mental. O dump é regenerado com
+`mysqldump --single-transaction --routines --triggers`, e o restauro é
+testado antes de qualquer alteração estrutural.
+
+## Operação
+
+Docker para o ambiente, Caddy como *reverse proxy* à frente do Apache para
+HTTPS automático e `wss://` no mesmo domínio, e os serviços de fundo
+(chat, lives, fila, Python) installados como tarefas do Windows. Um PC
+compartilhado em casa, a servir como servidor público, com domínio
+DuckDNS e certificado Let's Encrypt. Funciona.
+
+## O que eu faria diferente
+
+- **Mover o `composer.json` para o meu nome.** Ainda carrega o `author` de
+  quem cedeu a base do projeto. É um detalhe que conta.
+- **Testes mais cedo.** Existem 14 ficheiros de teste (Unit e Feature) e
+  PHPUnit, mas chegaram tarde. A refatoração da normalização do utilizador
+  foi o momento em que mais senti a falta de uma rede de segurança.
+- **Adiar a renomeação foi um erro calculado.** A tabela de amizade
+  chama-se `amizade` e a variável de perfil global continua a chamar-se
+  `idExtrangeiro`, em dezenas de ficheiros. Renomear exigia confirmar todos os
+  pontos de uso e partiria links externos. A decisão certa na altura; a dívida
+  continua paga todos os dias.

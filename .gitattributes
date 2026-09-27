@@ -1,0 +1,13 @@
+# Normaliza para LF no repositório. O Windows tem core.autocrlf ligado e
+# reescreveria os ficheiros com CRLF; a Vercel compila em Linux e oLF é o
+# que não dá problemas de diff.
+* text=auto eol=lf
+
+# Binários: nunca tocar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
