@@ -40,8 +40,9 @@ export function Home({ locale }: { locale: Locale }) {
       <main className="flex-1">
         {/* ---------------------------------------------------------- Hero */}
         <section className="hero-glow relative overflow-hidden border-b border-line">
+          <div className="aurora" aria-hidden />
           <div className="grid-lines absolute inset-0" aria-hidden />
-          <div className="relative mx-auto w-full max-w-5xl px-5 py-20 sm:py-28">
+          <div className="relative z-10 mx-auto w-full max-w-5xl px-5 py-20 sm:py-28">
             <p className="font-mono text-sm text-muted">{t.hero.greeting}</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
               {site.name}

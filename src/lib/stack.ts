@@ -40,7 +40,10 @@ export function getStack(locale: Locale): StackGroup[] {
     {
       title: "Frontend",
       items: [
-        { name: "Angular" },
+        {
+          name: "Angular",
+          note: "SPA com SSR e PWA, 7 idiomas gerados a partir de um array",
+        },
         { name: "HTML" },
         { name: "CSS" },
         { name: "Tailwind CSS" },
@@ -144,7 +147,10 @@ export function getStack(locale: Locale): StackGroup[] {
     {
       title: "Frontend",
       items: [
-        { name: "Angular" },
+        {
+          name: "Angular",
+          note: "SPA with SSR and PWA, 7 languages generated from one array",
+        },
         { name: "HTML" },
         { name: "CSS" },
         { name: "Tailwind CSS" },

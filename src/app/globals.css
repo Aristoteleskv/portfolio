@@ -16,6 +16,8 @@
   --accent: #f0b429;
   --accent-fg: #0a0a0b;
   --ring: #f0b429;
+  --aurora-1: rgba(240, 180, 41, 0.20);
+  --aurora-2: rgba(62, 94, 214, 0.16);
   color-scheme: dark;
 }
 
@@ -28,6 +30,8 @@
   --accent: #a1700a;
   --accent-fg: #ffffff;
   --ring: #a1700a;
+  --aurora-1: rgba(224, 165, 25, 0.26);
+  --aurora-2: rgba(62, 94, 214, 0.12);
   color-scheme: light;
 }
 
@@ -84,11 +88,77 @@ body {
   display: block;
 }
 
-/* Hero backdrop: a single soft accent glow, no images. */
+/* Hero backdrop.
+   Base is a static accent glow so the hero still has depth if the animation
+   never runs. Inspiration: the drifting gradient orbs on the Grupo Paralela
+   site — same idea, held back: the site's own gold instead of a stock colour,
+   no goo filter, no parallax, and it stops completely under
+   prefers-reduced-motion. */
 .hero-glow {
   background:
-    radial-gradient(60rem 30rem at 50% -12rem, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
-    radial-gradient(40rem 24rem at 85% 5%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 70%);
+    radial-gradient(60rem 30rem at 50% -12rem, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%);
+}
+
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  /* Fade out before the fold so the glow never ends on a hard edge. */
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+}
+
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
+.aurora::before {
+  top: -26vmax;
+  left: -12vmax;
+  background: radial-gradient(circle, var(--aurora-1), transparent 70%);
+  animation: aurora-drift-a 26s ease-in-out infinite alternate;
+}
+
+.aurora::after {
+  top: -20vmax;
+  right: -16vmax;
+  background: radial-gradient(circle, var(--aurora-2), transparent 70%);
+  animation: aurora-drift-b 32s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(7vmax, 5vmax, 0) scale(1.18);
+  }
+}
+
+@keyframes aurora-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.12);
+  }
+
+  to {
+    transform: translate3d(-8vmax, 6vmax, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after {
+    animation: none;
+  }
 }
 
 /* Faint grid, purely decorative. */

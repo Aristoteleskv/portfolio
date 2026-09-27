@@ -1,0 +1,183 @@
+---
+title: "Grupo Paralela — site institucional"
+summary: "Site institucional em Angular 17 com SSR, PWA e painel de administração, servido pelo mesmo processo Node que a API. Sete idiomas, conteúdo editável pela equipa sem deploy."
+year: "2025"
+role: "Desenvolvedor frontend e backend — arquitetura, i18n e painel de administração"
+featured: true
+order: 2
+stack:
+  - "Angular 17"
+  - "TypeScript"
+  - "SSR + Express"
+  - "PWA"
+  - "SCSS"
+  - "SQLite"
+  - "JWT"
+metrics:
+  - { label: "Ficheiros próprios", value: "77" }
+  - { label: "Linhas de código", value: "~9,900" }
+  - { label: "Tabelas", value: "15" }
+  - { label: "Idiomas", value: "7" }
+---
+
+## O que é
+
+Um site institucional para uma empresa de consultoria e formação, com páginas
+públicas, área de candidaturas e um painel onde a equipa edita texto, imagery,
+vagas, parceiros e artigos — sem tocar em código nem fazer deploy.
+
+O objectivo real não era "fazer um site bonito". Era **tirar o cliente do
+WordPress**: cada vez que um título mudava, alguém tinha de pedir a um
+programador. Com uma tabela de traduções e um painel, a equipa escreve.
+
+## A decisão que organiza tudo: um só processo
+
+O Angular 17 gera um servidor de SSR, e esse servidor é um Express. Em vez de
+deployar o frontend numa máquina e a API noutra, **os dois são o mesmo
+processo** e respondem na mesma porta.
+
+```ts title="server.ts"
+server.use('/api/careers', careerRoutes);
+server.use('/api/admin', adminRoutes);
+// Tudo o resto é o motor de SSR do Angular.
+server.get('*', (req, res, next) => {
+  commonEngine
+    .render({ bootstrap, documentFilePath: indexHtml, url, publicPath: browserDistFolder })
+    .then((html) => res.send(html))
+    .catch((err) => next(err));
+});
+```
+
+Consequência prática: sem CORS entre a página e a API, sem dois deploys para
+coordinar, e a API fica no mesmo domínio — o que faz a SPA e o SSR
+compartilharem cookies sem trabalho extra.
+
+## Conteúdo editável pela equipa
+
+A base de dados SQLite tem 15 tabelas, e o núcleo do projecto está nelas: cada
+secção do site lê de uma tabela, e cada tabela tem um ecrã no painel.
+
+| Tabela | O que controla |
+| --- | --- |
+| `translations` | Todo o texto visível, por idioma |
+| `carousel_slides` | Slides da home |
+| `partners` / `certifications` | Logótipos de parceiros e certificações |
+| `jobs` + `applications` | Vagas e candidaturas (com upload de CV) |
+| `knowledge_articles` | Artigos de base de conhecimento, por categoria |
+| `idea_submissions` + `teams` | Submissão de ideias e formação de equipas |
+| `users` + `user_profiles` | Contas e perfis do painel |
+
+As traduções é que são o ponto sensível: `translations` tem `UNIQUE(section,
+key)`, o que garante que não há duas entradas para a mesma chave. O resto do
+esquema é previsível; a diferença está em não haver texto dentro do código.
+
+```ts title="backend/db.ts"
+// O seed só corre se a tabela estiver vazia — nunca sobrescreve o que
+// alguém já editou pelo painel.
+const userCount = db.prepare('SELECT COUNT(*) as cnt FROM users').get();
+if (userCount.cnt === 0) { /* insere os valores por omissão */ }
+```
+
+## Sete idiomas, uma só tabela de rotas
+
+As rotas são geradas por função, não escritas à mão sete vezes. `pt`, `en`,
+`fr`, `ru`, `zh`, `es` e `ln` saem do mesmo array, cada uma com as mesmas
+páginas e os mesmos componentes *lazy-loaded*.
+
+```ts title="src/app/app.routes.ts"
+const supportedLanguages = ['pt', 'en', 'fr', 'ru', 'zh', 'es', 'ln'];
+
+supportedLanguages.forEach((lang) => {
+  languageRoutes.push({
+    path: lang,
+    children: [
+      { path: '', component: HomeComponent },
+      { path: 'sobre', loadComponent: () => import('./pages/sobre/sobre.component').then((m) => m.SobreComponent) },
+      // ... o resto das páginas, todas lazy
+    ],
+  });
+});
+```
+
+Cada página é um `loadComponent`, o que quer dizer que o bundle inicial não
+carrega os ecrãs que o visitante não abriu. Com SSR, o primeiro HTML já
+chega com conteúdo — não uma página vazia à espera de JavaScript.
+
+## Onde o SSR complica
+
+O `TranslationService` é o exemplo mais honesto. O mesmo serviço tem de ler as
+traduções de duas maneiras: `fetch` no browser, `fs.readFileSync` no servidor.
+
+```ts title="src/app/core/translation.service.ts"
+if (isPlatformServer(this.platformId)) {
+  // No servidor o ficheiro está em disco; no browser vai por HTTP.
+  const filePath = path.join(process.cwd(), 'src', 'assets', 'i18n', `${lang}.json`);
+  this.translations = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+} else {
+  const response = await fetch(`assets/i18n/${lang}.json`);
+  this.translations = await response.json();
+}
+```
+
+É uma bifurcação real, não uma abstracção elegante — e é o preço de ter SSR com
+traduções em ficheiros. O `AdminGuard` tem a mesma restrição: devolve
+`false` no servidor, porque uma rota protegida não tem nada a renderizar
+antes do token existir.
+
+## Perfis de performance medidos no código
+
+Existe um `PerformanceService` que não se limita a dizer que a página é
+rápida: recolhe LCP, FCL, FID, CLS e TTI, e correlaciona com a navegação. É o
+serviço de que um cliente institucional mais precisa, porque ninguém lhe vai
+pedir um Lighthouse — a qualidade é o que ele promete.
+
+```ts title="src/app/core/performance.service.ts"
+private initPerformanceMonitoring(): void {
+  // Core Web Vitals
+  this.measureCoreWebVitals();
+  this.setupRoutePerformanceTracking(); // NavigationEnd -> tempo por rota
+}
+```
+
+O `LazyLoadService` usa `IntersectionObserver` para adiar o carregamento do
+que está fora do ecrã, e o `OptimizationService` deteita o que o browser
+suporta antes de o usar.
+
+## Autenticação
+
+JWT com `bcrypt` para a password, e dois níveis: `authMiddleware` valida o
+token, `requireRole('admin')` valida o papel. O frontend tem um `CanActivate`
+que devolve sempre um `UrlTree` — quem está autenticado mas não é admin vai
+para o dashboard em vez de ver um ecrã vazio.
+
+## O que eu faria diferente
+
+Este é o projecto onde tenho mais a dizer, porque é o que mais crescia:
+
+- **O segredo do JWT tem um valor de omissão no código.**
+  `process.env['JWT_SECRET'] || 'grupo-paralela-secret-key-change-in-production'`
+  funciona em desenvolvimento e é um problema em produção. Um segredo de
+  omissão nunca deve existir: se a variável não estiver definida, o processo
+  tem de não arrancar.
+- **O mesmo vale para a password por omissão.** O seed cria
+  `admin@grupoparalela.com` / `admin123`. Um primeiro arranque tem de pedir a
+  password ao utilizador, não gerá-la.
+- **`styles.scss` tem 29 773 linhas.** A maior parte é CSS de terceiros
+  copiado. Dava para importar só o que se usa e voltar a este ficheiro para
+  algumas centenas de linhas.
+- **JavaScript legado a conviver com Angular.** `barba.js`, `fancybox` e um
+  GSAP 3.2.4 servido de CDN vivem em `assets/js/` ao lado do código
+  moderno. Ou migram para componentes, ou saem.
+- **O README diz cinco idiomas; as rotas têm sete.** `es` e `ln` não estão
+  documentados, e o Lingala é a decisão mais interessante de toda — merece
+  estar escrita em algum lado.
+- **Nada de testes de comportamento.** Há 12 ficheiros de spec, mas são
+  estruturais: o que foi gerado pelo CLI. O que devia estar testado é o
+  `AdminGuard` e o `TranslationService` em modo servidor.
+
+## Sobre mostrar este projecto
+
+É trabalho de cliente, com logótipos de terceiros e marcas de certificação
+que pertencem a outras empresas. Convém ter o acordo do cliente em baixo antes
+de o site estar público. A descrição e os números não dependem disso, mas as
+capturas de ecrã, se alguma vez forem adicionadas, dependem.
