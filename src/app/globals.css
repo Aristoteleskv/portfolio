@@ -16,8 +16,10 @@
   --accent: #f0b429;
   --accent-fg: #0a0a0b;
   --ring: #f0b429;
-  --aurora-1: rgba(240, 180, 41, 0.20);
-  --aurora-2: rgba(62, 94, 214, 0.16);
+  /* Tinta dos anéis concêntricos do hero. O `--ring-1` é o mesmo
+     `hsla(281, 0%, 88%, 0.07)` que o body do site Ideias Paralelas usa. */
+  --ring-1: hsla(281, 0%, 88%, 0.07);
+  --ring-2: rgba(240, 180, 41, 0.05);
   color-scheme: dark;
 }
 
@@ -27,11 +29,14 @@
   --border: #e3e3ea;
   --fg: #131318;
   --muted: #5c5c68;
-  --accent: #a1700a;
+  /* O dourado tem de servir dois usos: texto sobre o fundo claro e fundo de
+     texto branco. #a1700a ficava a 4.2:1 e 4.34:1 — abaixo de 4.5:1 nos dois
+     lados. Este âmbar mais escuro dá 5.4:1 e 5.5:1. */
+  --accent: #8a5d06;
   --accent-fg: #ffffff;
-  --ring: #a1700a;
-  --aurora-1: rgba(224, 165, 25, 0.26);
-  --aurora-2: rgba(62, 94, 214, 0.12);
+  --ring: #8a5d06;
+  --ring-1: hsla(262, 55%, 42%, 0.11);
+  --ring-2: rgba(161, 112, 10, 0.07);
   color-scheme: light;
 }
 
@@ -43,8 +48,8 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 html {
@@ -88,86 +93,156 @@ body {
   display: block;
 }
 
-/* Hero backdrop.
-   Base is a static accent glow so the hero still has depth if the animation
-   never runs. Inspiration: the drifting gradient orbs on the Grupo Paralela
-   site — same idea, held back: the site's own gold instead of a stock colour,
-   no goo filter, no parallax, and it stops completely under
-   prefers-reduced-motion. */
-.hero-glow {
-  background:
-    radial-gradient(60rem 30rem at 50% -12rem, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%);
-}
+/* Fundo do hero: anéis concêntricos.
+   A ideia vem do site Ideias Paralelas — cinco gradientes radiais com
+   *paradas duras* (63%/79%, 77%/80%, 69%/93%, 49%/66%, 56%/74%) sobre preto.
+   As paradas duras são o que os torna anéis em vez de manchas de gradiente,
+   e é isso que os distingue de um "gradient orb" -- que é o que quase todos os
+   portfolios de 2024 põem no hero.
 
-.aurora {
+   `waveMotion` no site anima `background-size` de 100% para 110% em 45s. Aqui
+   escalo a camada: mesma imagem no ecrã, mas só no compositor, sem repaint
+   por frame. */
+.hero-rings {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  /* Fade out before the fold so the glow never ends on a hard edge. */
-  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
 }
 
-.aurora::before,
-.aurora::after {
+.hero-rings::before {
   content: "";
   position: absolute;
-  width: 46vmax;
-  height: 46vmax;
-  border-radius: 50%;
-  filter: blur(80px);
+  /* Maior que o hero para a respiração nunca mostrar a borda. */
+  inset: -25%;
+  --ink: var(--ring-1);
+  background-image:
+    radial-gradient(circle at 92% 0%, var(--ink) 0 63%, transparent 63% 79%, transparent 100%),
+    radial-gradient(circle at 41% 56%, var(--ink) 0 77%, transparent 77% 80%, transparent 100%),
+    radial-gradient(circle at 51% 47%, var(--ink) 0 69%, transparent 69% 93%, transparent 100%),
+    radial-gradient(circle at 74% 84%, var(--ink) 0 49%, transparent 49% 66%, transparent 100%),
+    radial-gradient(circle at 37% 72%, var(--ink) 0 56%, transparent 56% 74%, transparent 100%),
+    radial-gradient(circle at 12% 8%, var(--ring-2) 0 45%, transparent 45% 62%, transparent 100%);
+  animation: ring-breathe 45s ease-in-out infinite;
   will-change: transform;
 }
 
-.aurora::before {
-  top: -26vmax;
-  left: -12vmax;
-  background: radial-gradient(circle, var(--aurora-1), transparent 70%);
-  animation: aurora-drift-a 26s ease-in-out infinite alternate;
-}
-
-.aurora::after {
-  top: -20vmax;
-  right: -16vmax;
-  background: radial-gradient(circle, var(--aurora-2), transparent 70%);
-  animation: aurora-drift-b 32s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-drift-a {
-  from {
+@keyframes ring-breathe {
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
 
-  to {
-    transform: translate3d(7vmax, 5vmax, 0) scale(1.18);
-  }
-}
-
-@keyframes aurora-drift-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1.12);
+  25% {
+    transform: translate3d(-1.2%, 0.8%, 0) scale(1.06);
   }
 
-  to {
-    transform: translate3d(-8vmax, 6vmax, 0) scale(1);
+  50% {
+    transform: translate3d(0.6%, -1%, 0) scale(1.1);
+  }
+
+  75% {
+    transform: translate3d(1%, 1.2%, 0) scale(1.05);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora::before,
-  .aurora::after {
+  .hero-rings::before {
     animation: none;
   }
 }
 
-/* Faint grid, purely decorative. */
-.grid-lines {
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(70% 50% at 50% 0%, #000 20%, transparent 100%);
+/* Vinheta: as camadas de `box-shadow ... inset` do body do site Ideias
+   Paralelas. Fica no hero, onde o resto do design já usa `border-b`. */
+.hero-rings::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    rgba(0, 0, 0, 0.17) 0 -23px 25px 0 inset,
+    rgba(0, 0, 0, 0.15) 0 -36px 30px 0 inset,
+    rgba(0, 0, 0, 0.1) 0 -79px 40px 0 inset;
+}
+
+/* Etiqueta de secção, no registo do `.sub-heading-green` do site
+   (10px / peso 800 / 2px de tracking). Substitui o prefixo `# ` monoespaçado
+   dos títulos, que é o marcador mais óbvio de "portfolio gerado". */
+.eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--accent);
+}
+
+/* Números grandes: o `.display-2` em peso 300 do site. Nos cards e nas
+   páginas de projecto, onde antes havia texto pequeno em mono. */
+.metric-value {
+  font-family: var(--font-sans);
+  font-size: 1.6rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+
+.metric-label {
+  margin-top: 0.15rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* Cursor que segue o rato. Só com `pointer: fine` e some com
+   O cursor do sistema não é escondido: isso quebra quem depende dele e
+   desaparece se o JS falhar. O halo é um acento por cima. */
+.cursor-halo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  transition:
+    transform 0.14s ease-out,
+    opacity 0.3s ease,
+    width 0.2s ease,
+    height 0.2s ease,
+    margin 0.2s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.cursor-halo[data-active="true"] {
+  opacity: 1;
+}
+
+.cursor-halo[data-hover="true"] {
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  background: color-mix(in oklab, var(--accent) 26%, transparent);
+  border-color: var(--accent);
+}
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cursor-halo {
+    display: none;
+  }
 }
 
 /* ---------------------------------------------------------------------------

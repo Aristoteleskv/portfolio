@@ -36,8 +36,8 @@ const options = {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="mt-1 text-sm">{value}</dd>
+      <dd className="text-sm">{value}</dd>
+      <dt className="metric-label">{label}</dt>
     </div>
   );
 }
@@ -88,8 +88,8 @@ export function ProjectDetail({
             <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {project.metrics.map((metric) => (
                 <li key={metric.label} className="rounded-xl border border-line p-4">
-                  <p className="font-mono text-xl font-semibold text-accent">{metric.value}</p>
-                  <p className="mt-1 text-xs leading-snug text-muted">{metric.label}</p>
+                  <p className="metric-value text-accent">{metric.value}</p>
+                  <p className="metric-label leading-snug">{metric.label}</p>
                 </li>
               ))}
             </ul>

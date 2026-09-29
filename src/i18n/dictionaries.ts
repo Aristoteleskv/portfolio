@@ -24,6 +24,7 @@ export const dict = {
       ctaContact: "Falar comigo",
     },
     work: {
+      eyebrow: "Projectos seleccionados",
       title: "Projetos",
       subtitle:
         "Dois sistemas que construí de ponta a ponta — arquitetura, implementação e operação.",
@@ -43,10 +44,12 @@ export const dict = {
       notFoundHint: "Este projeto não existe ou foi movido.",
     },
     stack: {
+      eyebrow: "O que uso todos os dias",
       title: "Stack",
       subtitle: "Ferramentas que uso no dia a dia.",
     },
     contact: {
+      eyebrow: "Estamos em contacto",
       title: "Contacto",
       subtitle:
         "Aberto a projetos,行本 de código e a aprender em conjunto. A resposta mais rápida é o GitHub.",
@@ -87,6 +90,7 @@ export const dict = {
       ctaContact: "Get in touch",
     },
     work: {
+      eyebrow: "Selected work",
       title: "Work",
       subtitle:
         "Two systems I built end to end — architecture, implementation and operations.",
@@ -106,10 +110,12 @@ export const dict = {
       notFoundHint: "This project does not exist or has moved.",
     },
     stack: {
+      eyebrow: "What I reach for daily",
       title: "Stack",
       subtitle: "Tools I reach for daily.",
     },
     contact: {
+      eyebrow: "Let's talk",
       title: "Contact",
       subtitle:
         "Open to projects, code pairing, and learning together. The fastest way to reach me is GitHub.",

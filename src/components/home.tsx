@@ -10,17 +10,19 @@ import { SiteHeader } from "./site-header";
 
 function SectionHeading({
   id,
+  eyebrow,
   title,
   subtitle,
 }: {
   id: string;
+  eyebrow: string;
   title: string;
   subtitle: string;
 }) {
   return (
     <div className="mb-10">
-      <h2 id={id} className="scroll-mt-24 text-2xl font-semibold tracking-tight sm:text-3xl">
-        <span className="font-mono text-accent"># </span>
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 id={id} className="mt-3 scroll-mt-24 text-2xl font-semibold tracking-tight sm:text-3xl">
         {title}
       </h2>
       <p className="mt-2 max-w-2xl text-[0.95rem] leading-relaxed text-muted">{subtitle}</p>
@@ -39,11 +41,10 @@ export function Home({ locale }: { locale: Locale }) {
 
       <main className="flex-1">
         {/* ---------------------------------------------------------- Hero */}
-        <section className="hero-glow relative overflow-hidden border-b border-line">
-          <div className="aurora" aria-hidden />
-          <div className="grid-lines absolute inset-0" aria-hidden />
+        <section className="relative overflow-hidden border-b border-line">
+          <div className="hero-rings" aria-hidden />
           <div className="relative z-10 mx-auto w-full max-w-5xl px-5 py-20 sm:py-28">
-            <p className="font-mono text-sm text-muted">{t.hero.greeting}</p>
+            <p className="eyebrow">{t.hero.greeting}</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
               {site.name}
             </h1>
@@ -84,7 +85,7 @@ export function Home({ locale }: { locale: Locale }) {
 
         {/* --------------------------------------------------------- Projetos */}
         <section className="mx-auto w-full max-w-5xl px-5 py-20 sm:py-24">
-          <SectionHeading id="work" title={t.work.title} subtitle={t.work.subtitle} />
+          <SectionHeading id="work" eyebrow={t.work.eyebrow} title={t.work.title} subtitle={t.work.subtitle} />
           <div className="grid gap-5 sm:grid-cols-2">
             {projects.map((project) => (
               <ProjectCard key={project.slug} project={project} locale={locale} />
@@ -95,7 +96,7 @@ export function Home({ locale }: { locale: Locale }) {
         {/* ------------------------------------------------------------ Stack */}
         <section className="border-y border-line bg-elevated/40">
           <div className="mx-auto w-full max-w-5xl px-5 py-20 sm:py-24">
-            <SectionHeading id="stack" title={t.stack.title} subtitle={t.stack.subtitle} />
+            <SectionHeading id="stack" eyebrow={t.stack.eyebrow} title={t.stack.title} subtitle={t.stack.subtitle} />
 
             <div className="space-y-10">
               {stack.map((group) => (
@@ -124,7 +125,7 @@ export function Home({ locale }: { locale: Locale }) {
 
         {/* --------------------------------------------------------- Contacto */}
         <section className="mx-auto w-full max-w-5xl px-5 py-20 sm:py-24">
-          <SectionHeading id="contact" title={t.contact.title} subtitle={t.contact.subtitle} />
+          <SectionHeading id="contact" eyebrow={t.contact.eyebrow} title={t.contact.title} subtitle={t.contact.subtitle} />
           <div className="flex flex-wrap gap-3">
             <a
               href={site.githubUrl}

@@ -1,15 +1,24 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { JetBrains_Mono, Outfit } from "next/font/google";
+
+import { CursorHalo } from "./cursor-halo";
 
 import "../app/globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/**
+ * A Geist é a fonte default do Next.js — é o primeiro sinal de "portfolio
+ * gerado" que se vê. A Outfit é geométrica como a Noway do site Ideias
+ * Paralelas (a original é da Fontfabric e não pode ir num repo público) e
+ * lê-se bem nos pesos altos. JetBrains Mono para o código.
+ */
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
   display: "swap",
+  weight: ["300", "400", "600", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrains = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   display: "swap",
 });
@@ -30,12 +39,13 @@ export function Shell({
   return (
     <html
       lang={lang}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${jetbrains.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-bg text-fg">
         {/* First thing in the body: runs before anything is painted. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <CursorHalo />
         {children}
       </body>
     </html>

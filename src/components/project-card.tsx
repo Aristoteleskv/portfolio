@@ -29,8 +29,8 @@ export function ProjectCard({ project, locale }: { project: Project; locale: Loc
         <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-5 sm:grid-cols-4">
           {project.metrics.slice(0, 4).map((metric) => (
             <div key={metric.label}>
-              <dt className="text-[11px] uppercase tracking-wide text-muted">{metric.label}</dt>
-              <dd className="mt-0.5 font-mono text-sm font-medium text-fg">{metric.value}</dd>
+              <dd className="metric-value">{metric.value}</dd>
+              <dt className="metric-label">{metric.label}</dt>
             </div>
           ))}
         </dl>
