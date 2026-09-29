@@ -13,13 +13,13 @@
   --border: #26262d;
   --fg: #f4f4f6;
   --muted: #a1a1ad;
-  --accent: #f0b429;
+  --accent: #ca622c;
   --accent-fg: #0a0a0b;
-  --ring: #f0b429;
+  --ring: #ca622c;
   /* Tinta dos anéis concêntricos do hero. O `--ring-1` é o mesmo
      `hsla(281, 0%, 88%, 0.07)` que o body do site Ideias Paralelas usa. */
   --ring-1: hsla(281, 0%, 88%, 0.07);
-  --ring-2: rgba(240, 180, 41, 0.05);
+  --ring-2: rgba(202, 98, 44, 0.07);
   color-scheme: dark;
 }
 
@@ -29,14 +29,18 @@
   --border: #e3e3ea;
   --fg: #131318;
   --muted: #5c5c68;
-  /* O dourado tem de servir dois usos: texto sobre o fundo claro e fundo de
-     texto branco. #a1700a ficava a 4.2:1 e 4.34:1 — abaixo de 4.5:1 nos dois
-     lados. Este âmbar mais escuro dá 5.4:1 e 5.5:1. */
-  --accent: #8a5d06;
-  --accent-fg: #ffffff;
-  --ring: #8a5d06;
+  /* O accent faz dois usos ao mesmo tempo: texto de apoio sobre o fundo, e
+     fundo do botão primário. Ambos precisam de 4.5:1.
+
+     `#ca622c` é o tom pedido e no tema escuro dá 4.99:1 nos dois usos. No tema
+     claro o mesmo tom só dá 3.84:1 como texto (a etiqueta de secção e o
+     parágrafo de introdução são texto normal), por isso aqui desço um degrau
+     na mesma família: `#b85520` dá 4.66:1 como texto e 4.82:1 como fundo. */
+  --accent: #b85520;
+  --accent-fg: #0a0a0b;
+  --ring: #b85520;
   --ring-1: hsla(262, 55%, 42%, 0.11);
-  --ring-2: rgba(161, 112, 10, 0.07);
+  --ring-2: rgba(184, 85, 32, 0.09);
   color-scheme: light;
 }
 
@@ -93,6 +97,27 @@ body {
   display: block;
 }
 
+/* As três camadas decorativas do hero numa só caixa, atrás do texto (`z-10`).
+
+   Existe por causa da paralaxe: `--hero-p` (0 no topo da página, 1 quando o
+   hero já saiu do ecrã) é escrita pelo `HeroLayers` nesta caixa, e por isso o
+   style recalc que essa escrita provoca a cada frame de scroll fica restrito
+   a três `div` sem texto — o conteúdo do hero não paga esse custo.
+
+   As três mantêm o `z-index` relativo que já tinham (0/1/2) dentro deste
+   contexto de empilhamento, o que preserva a ordem anéis → imagem → véu.
+
+   O valor por omissão está aqui e não no JS: sem JS, ou sob
+   `prefers-reduced-motion` (onde o listener nem sequer é ligado), `--hero-p` é
+   0 e o hero é exactamente o que era. */
+.hero-layers {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --hero-p: 0;
+}
+
 /* Fundo do hero: anéis concêntricos.
    A ideia vem do site Ideias Paralelas — cinco gradientes radiais com
    *paradas duras* (63%/79%, 77%/80%, 69%/93%, 49%/66%, 56%/74%) sobre preto.
@@ -125,6 +150,17 @@ body {
     radial-gradient(circle at 37% 72%, var(--ink) 0 56%, transparent 56% 74%, transparent 100%),
     radial-gradient(circle at 12% 8%, var(--ring-2) 0 45%, transparent 45% 62%, transparent 100%);
   animation: ring-breathe 45s ease-in-out infinite;
+  /* Paralaxe. Os anéis são a camada mais profunda do hero, por isso
+     arrastam-se menos que a página: à medida que o scroll os leva para cima,
+     descem dentro do hero. 2% desta caixa (que é 150% do hero, por causa do
+     `inset: -25%` acima) dá 3% da altura do hero — a folga de 25% engole isso
+     com folga, sem revelar o fundo.
+
+     Vai em `translate` e não em `transform` porque a respiração já ocupa
+     `transform`. As propriedades de transform individuais compõem por ordem
+     (translate → rotate → scale → transform), por aqui as duas podem
+     conviver sem se tocarem. */
+  translate: 0 calc(var(--hero-p) * 2%);
   will-change: transform;
 }
 
@@ -163,6 +199,187 @@ body {
     rgba(0, 0, 0, 0.17) 0 -23px 25px 0 inset,
     rgba(0, 0, 0, 0.15) 0 -36px 30px 0 inset,
     rgba(0, 0, 0, 0.1) 0 -79px 40px 0 inset;
+}
+
+/* Imagem do hero.
+
+   A fonte é um recorte com canal alfa (63% opaco) e a sua luminância efectiva
+   vai de 0 a >0.8 — texto branco por cima falharia em metade da área. Por isso
+   a imagem vai `auto 100%`: encostada à direita, à altura do hero, sem corte
+   (é um recorte, cortar-lhe a subjecto estraga-o) e sem esticar. Na prática
+   é `auto 86.2%` de uma caixa 8% mais alta em cada lado, que dá o mesmo
+   tamanho com a folga de que a paralaxe precisa (ver a nota na regra).
+
+   A respiração vem do `transform`, com origem à direita para a imagem crescer
+   para dentro em vez de deslizar para fora da secção. `background-size` seria
+   um repaint de ecrã inteiro por frame. */
+.hero-media {
+  position: absolute;
+  /* 8% de folga acima e abaixo. A paralaxe desce até 5% da altura *desta*
+     caixa — 5,8% da altura do hero — e numa caixa exactamente do tamanho do
+     hero aparecia um rasco do fundo por baixo da imagem. `background-size`
+     compensa a caixa maior para a imagem ficar com o mesmo tamanho e no mesmo
+     sítio de antes: `86.2%` de `116%` dá o `100%` original, e a caixa
+     simétrica mantém a imagem centrada no mesmo sítio. */
+  inset: -8% 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url("/hero.webp");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: auto 86.2%;
+  transform-origin: right center;
+  animation: hero-breathe 45s ease-in-out infinite;
+  /* Paralaxe, como nos anéis e pelo mesmo motivo do `translate` separado. A
+     imagem está mais perto do leitor do que os anéis, por isso arrasta-se mais
+     que eles — é o que a separa do fundo. */
+  translate: 0 calc(var(--hero-p) * 5%);
+  will-change: transform, translate;
+}
+
+@keyframes hero-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-media {
+    animation: none;
+  }
+}
+
+/* Véu direccional: o fundo do site à esquerda, a imagem à direita.
+
+   As paragens não são uma escolha estética. Fui medido o alfa de véu mínimo
+   que cada pixel de texto exige, contra os píxeis reais da imagem e nos dois
+   extremos da respiração de 45s: só duas colunas (51% e 55% da largura) —
+   pontos claros da imagem que caem mesmo no fim das linhas do parágrafo de
+   introdução — pedem 0.82. Em todo o resto o requisito é 0.
+
+   Daí a forma: sólido até 46% (a coluna de texto é `max-w-5xl` centrada, por
+   isso o `h1` e o parágrafo não passam dos ~54% de tinta num viewport de
+   1280), uma coroa de 0.90 a 0.84 entre 58% e 68% para cobrir aquele pico com
+   margem, e depois a rampa que larga a imagem a partir de ~68%. Na prática a
+   imagem lê-se no terço direito.
+
+   As cores derivam de `var(--bg)`, por isso o véu acompanha o tema sozinho. */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    var(--bg) 0%,
+    var(--bg) 46%,
+    color-mix(in oklab, var(--bg) 90%, transparent) 58%,
+    color-mix(in oklab, var(--bg) 84%, transparent) 68%,
+    color-mix(in oklab, var(--bg) 45%, transparent) 80%,
+    color-mix(in oklab, var(--bg) 14%, transparent) 90%,
+    transparent 97%
+  );
+}
+
+/* Tablet (640-1279px): a imagem continua, mas deixa de ser dimensionada só
+   pela altura do hero.
+
+   Com `auto 100%` a imagem fica larga exactamente como o hero é alto, e num
+   hero estreito e alto isso ultrapassa a largura do ecrã — a imagem passa a
+   cobrir quase tudo e a colisão com o texto deixa de ser resolúvel. Limitar a
+   camada a `42vw` e usar `contain` devolve o controlo: a caixa passa a ser
+   mais estreita que alta, e a imagem é o quadrado mais alto que cabe nela,
+   encostado à direita.
+
+   O texto também encolhe (`max-w-md lg:max-w-lg xl:max-w-2xl` no `h1` e no
+   parágrafo, ver `home.tsx`). Sem isso a coluna fixa de 672px num viewport de
+   768px chegaria a 90% da largura. Com o texto a parar antes de a imagem
+   começar, o véu pode ser sólido até 78% — o pior caso é a 640px, onde a
+   coluna de 448px acaba a 73% — e a imagem lê-se nos últimos ~22%.
+
+   A folga de 8% que a paralaxe precisa (ver a regra base) continua aqui, e o
+   `contain` não redimensiona a imagem por causa dela: em toda esta faixa a
+   caixa é mais estreita que alta (0.4vw vai até 511px contra um hero de
+   ~600px ou mais), logo o limite é a largura e a caixa mais alta apenas
+   duplica a folga vertical disponível. */
+@media (max-width: 1279px) {
+  .hero-media {
+    left: auto;
+    width: min(100%, 40vw);
+    background-size: contain;
+  }
+
+  .hero-scrim {
+    background: linear-gradient(
+      to right,
+      var(--bg) 0%,
+      var(--bg) 78%,
+      color-mix(in oklab, var(--bg) 52%, transparent) 86%,
+      color-mix(in oklab, var(--bg) 20%, transparent) 93%,
+      transparent 98%
+    );
+  }
+}
+
+/* Telemóvel (<640px): lado a lado já não cabe, a imagem vira faixa no topo.
+
+   O texto ocupa a largura toda, portanto sobrepor a imagem daria a mesma
+   colisão. Em vez de a esconder, dou-lhe a faixa de cima do hero e empurro o
+   texto para baixo — a imagem fica totalmente visível e nenhum caractere do
+   texto lhe fica por cima. O véu passa a ser vertical e só serve para
+   suavizar a aresta inferior da faixa.
+
+   Aqui a paralaxe muda de mecanismo. A caixa é a faixa de 210px, sem a folga
+   de 8% da regra base (a faixa é mais curta do que a altura do hero, portanto
+   não há nem para onde a fazer crescê-la sem mudar o enquadramento da foto), e
+   um `translate` nela abriria um rasco do fundo por baixo. Em vez disso a
+   paralaxe desliza a *janela de corte* dentro da faixa: a fonte é um quadrado e
+   o `cover` só mostra 210px dos ~100vw que a caixa larga, por isso há folga
+   vertical na imagem para deslizar sem nada mudar de tamanho. 3% dessa folga
+   chega aos 13px num ecrã de 640px e a 3px num de 320px, e nunca se aproxima
+   do limite. */
+@media (max-width: 639px) {
+  .hero-media {
+    left: 0;
+    top: 0;
+    bottom: auto;
+    width: 100%;
+    height: 210px;
+    background-size: cover;
+    /* O sinal é o inverso do `translate` das camadas grandes porque aqui o que
+       se move para cima é a janela de corte, não a caixa: o conteúdo visível
+       desce dentro da faixa, que é o mesmo arrastar que lá. */
+    background-position: 62% calc(46% - var(--hero-p) * 3%);
+    transform-origin: 50% 0;
+    translate: none;
+    will-change: transform;
+  }
+
+  @keyframes hero-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.06);
+    }
+  }
+
+  .hero-scrim {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 58%,
+      color-mix(in oklab, var(--bg) 70%, transparent) 86%,
+      var(--bg) 100%
+    );
+  }
 }
 
 /* Etiqueta de secção, no registo do `.sub-heading-green` do site

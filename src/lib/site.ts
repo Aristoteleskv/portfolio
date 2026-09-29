@@ -9,8 +9,7 @@ export const site = {
   github: "Aristoteleskv",
   githubUrl: "https://github.com/Aristoteleskv",
   email: "manuelkivova@gmail.com",
-  /** Preenche quando quiseres linking para o LinkedIn. */
-  linkedinUrl: "",
+  linkedinUrl: "https://www.linkedin.com/in/matutadidi-a-kivova-071297206/",
   /**
    * URL pública do site. Em produção define NEXT_PUBLIC_SITE_URL na Vercel
    * (ex.: https://aristoteleskv.vercel.app) para o sitemap e as Open Graph

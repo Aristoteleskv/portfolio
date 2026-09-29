@@ -11,6 +11,7 @@ export const dict = {
       work: "Projetos",
       stack: "Stack",
       github: "GitHub",
+      linkedin: "LinkedIn",
       contact: "Contacto",
       theme: "Alternar tema",
       langLabel: "English",
@@ -21,6 +22,7 @@ export const dict = {
         "Construo software que tem de aguentar o mundo real: bases de dados com migrações, WebSockets, vídeo ao vivo e modelos de IA que não podem partir quando a rede falha.",
       ctaWork: "Ver projetos",
       ctaGithub: "Ver no GitHub",
+      ctaLinkedin: "LinkedIn",
       ctaContact: "Falar comigo",
     },
     work: {
@@ -52,8 +54,9 @@ export const dict = {
       eyebrow: "Estamos em contacto",
       title: "Contacto",
       subtitle:
-        "Aberto a projetos,行本 de código e a aprender em conjunto. A resposta mais rápida é o GitHub.",
+        "Aberto a projetos, leitura de código e a aprender em conjunto. A resposta mais rápida é o GitHub.",
       githubCta: "Abrir o meu GitHub",
+      linkedinCta: "LinkedIn",
       emailCta: "Enviar email",
     },
     footer: {
@@ -77,6 +80,7 @@ export const dict = {
       work: "Work",
       stack: "Stack",
       github: "GitHub",
+      linkedin: "LinkedIn",
       contact: "Contact",
       theme: "Toggle theme",
       langLabel: "Português",
@@ -87,6 +91,7 @@ export const dict = {
         "I build software that has to survive the real world: databases with migrations, WebSockets, live video, and ML models that must not break when the network does.",
       ctaWork: "See the work",
       ctaGithub: "View on GitHub",
+      ctaLinkedin: "LinkedIn",
       ctaContact: "Get in touch",
     },
     work: {
@@ -120,6 +125,7 @@ export const dict = {
       subtitle:
         "Open to projects, code pairing, and learning together. The fastest way to reach me is GitHub.",
       githubCta: "Open my GitHub",
+      linkedinCta: "LinkedIn",
       emailCta: "Send an email",
     },
     footer: {

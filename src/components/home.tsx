@@ -4,6 +4,7 @@ import { getProjects } from "@/lib/projects";
 import { getStack } from "@/lib/stack";
 import { site } from "@/lib/site";
 
+import { HeroLayers } from "./hero-layers";
 import { ProjectCard } from "./project-card";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
@@ -42,10 +43,15 @@ export function Home({ locale }: { locale: Locale }) {
       <main className="flex-1">
         {/* ---------------------------------------------------------- Hero */}
         <section className="relative overflow-hidden border-b border-line">
-          <div className="hero-rings" aria-hidden />
-          <div className="relative z-10 mx-auto w-full max-w-5xl px-5 py-20 sm:py-28">
+          <HeroLayers />
+          {/* `pt-64` no telemóvel é a altura da faixa de imagem (210px) mais
+              folga, para nenhum texto ficar por cima dela. */}
+          <div className="relative z-10 mx-auto w-full max-w-5xl px-5 pb-20 pt-64 sm:pb-28 sm:pt-28">
             <p className="eyebrow">{t.hero.greeting}</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
+            {/* A coluna encolhe com o ecrã. A largura fixa de 672px num
+                viewport de 768px chegaria a 90% da largura do hero e a imagem
+                não cabia à direita dela. */}
+            <h1 className="mt-3 max-w-md text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl lg:max-w-lg xl:max-w-2xl">
               {site.name}
             </h1>
             <p className="mt-4 font-mono text-sm text-accent sm:text-base">
@@ -54,7 +60,7 @@ export function Home({ locale }: { locale: Locale }) {
             <p className="mt-2 font-mono text-xs text-muted">
               {site.location} · {site.company}
             </p>
-            <p className="mt-7 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+            <p className="mt-7 max-w-md text-base leading-relaxed text-muted sm:text-lg lg:max-w-lg xl:max-w-2xl">
               {t.hero.intro}
             </p>
 
@@ -72,6 +78,14 @@ export function Home({ locale }: { locale: Locale }) {
                 className="rounded-lg border border-line bg-elevated px-5 py-2.5 text-sm font-medium transition-colors hover:border-accent/50 hover:text-accent"
               >
                 {t.hero.ctaGithub}
+              </a>
+              <a
+                href={site.linkedinUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="rounded-lg border border-line bg-elevated px-5 py-2.5 text-sm font-medium transition-colors hover:border-accent/50 hover:text-accent"
+              >
+                {t.hero.ctaLinkedin}
               </a>
               <a
                 href={`mailto:${site.email}`}
@@ -134,6 +148,14 @@ export function Home({ locale }: { locale: Locale }) {
               className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-opacity hover:opacity-90"
             >
               {t.contact.githubCta}
+            </a>
+            <a
+              href={site.linkedinUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="rounded-lg border border-line bg-elevated px-5 py-2.5 text-sm font-medium transition-colors hover:border-accent/50 hover:text-accent"
+            >
+              {t.contact.linkedinCta}
             </a>
             <a
               href={`mailto:${site.email}`}
